@@ -142,6 +142,19 @@ class ApprovalStoreTests(TmpDirTestCase):
         # Modified policy version
         self.assertEqual(self.store.resolve(action_hash=H["action_hash"], policy_hash="e" * 64, agent_id=H["agent_id"]).state, "none")
 
+    def test_list_filtering_and_tuple_args(self):
+        self.assertEqual(self.store.list(), [])
+        self.assertEqual(self.store.list("pending"), [])
+        r1 = self.req()
+        self.req(action_hash="1" * 64, policy_hash="2" * 64, agent_id="agent-2")
+        all_recs = self.store.list()
+        self.assertEqual(len(all_recs), 2)
+        self.assertEqual(len(self.store.list("pending")), 2)
+        self.assertEqual(self.store.list("approved"), [])
+        self.store.decide(r1.id, True)
+        self.assertEqual(len(self.store.list("approved")), 1)
+        self.assertEqual(len(self.store.list("pending")), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

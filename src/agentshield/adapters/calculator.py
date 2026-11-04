@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 import operator
-from typing import Any
+from typing import Any, Callable
 
 from ..constraints import CALCULATOR_CONSTRAINTS
 from ..models import ExecutionError, Reason
@@ -21,7 +21,18 @@ _BIN = {
     ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
     ast.FloorDiv: operator.floordiv, ast.Mod: operator.mod, ast.Pow: operator.pow,
 }
-_UNARY = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+def _pos(v: int | float) -> int | float:
+    return +v
+
+
+def _neg(v: int | float) -> int | float:
+    return -v
+
+
+_UNARY: dict[type[ast.unaryop], Callable[[int | float], int | float]] = {
+    ast.UAdd: _pos,
+    ast.USub: _neg,
+}
 
 
 def _parse(expr: str) -> ast.Expression:
@@ -68,9 +79,15 @@ def _eval(node: ast.AST) -> int | float:
     if isinstance(node, ast.Expression):
         return _eval(node.body)
     if isinstance(node, ast.Constant):
-        return _bound(node.value)
+        val = node.value
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            return _bound(val)
+        raise ExecutionError("INVALID_EXPRESSION", f"unsupported constant: {type(val).__name__}")
     if isinstance(node, ast.UnaryOp):
-        return _bound(_UNARY[type(node.op)](_eval(node.operand)))
+        op = _UNARY.get(type(node.op))
+        if op is None:
+            raise ExecutionError("INVALID_EXPRESSION", f"unsupported unary operator: {type(node.op).__name__}")
+        return _bound(op(_eval(node.operand)))
     if isinstance(node, ast.BinOp):
         left, right = _eval(node.left), _eval(node.right)
         if isinstance(node.op, ast.Pow) and abs(right) > _MAX_EXPONENT:

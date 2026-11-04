@@ -212,9 +212,11 @@ class ApprovalStore:
         return self._rec(row) if row else None
 
     def list(self, status: str | None = None) -> list[ApprovalRecord]:
-        q, args = "SELECT * FROM approvals", ()
+        q = "SELECT * FROM approvals"
+        args: tuple[str, ...] = ()
         if status:
-            q, args = q + " WHERE status=?", (status,)
+            q = q + " WHERE status=?"
+            args = (status,)
         with self._conn() as c:
             rows = c.execute(q + " ORDER BY created_at DESC LIMIT 500", args).fetchall()
         return [self._rec(r) for r in rows]
