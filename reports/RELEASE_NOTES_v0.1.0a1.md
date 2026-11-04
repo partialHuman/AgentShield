@@ -3,7 +3,7 @@
 **Release Tag:** `v0.1.0a1`
 **Release Type:** Alpha Preview (Pre-Release)
 **Date:** 2026-11-04
-**Git Commit:** `7284123` (Merge PR #1 into `main`)
+**Git Commit:** `5353c61` (Release preparation commit)
 **License:** Apache 2.0
 
 ---
