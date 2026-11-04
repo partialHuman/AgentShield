@@ -155,6 +155,16 @@ class AuditTests(TmpDirTestCase):
         log.record("decision", tool="x")
         self.assertEqual(len(log.events), 1)
 
+    def test_tampering_event_seq_detected(self):
+        path = self.make(3)
+        ls = self.lines(path)
+        ev = json.loads(ls[1])
+        ev["seq"] = 99
+        ls[1] = (json.dumps(ev, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        self.write(path, ls)
+        res = verify_chain(path)
+        self.assertFalse(res.ok)
+
 
 if __name__ == "__main__":
     unittest.main()

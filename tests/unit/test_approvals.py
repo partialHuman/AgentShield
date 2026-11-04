@@ -117,6 +117,27 @@ class ApprovalStoreTests(TmpDirTestCase):
         again = ApprovalStore(os.path.join(self.tmp, "ap"), clock=self.clock)
         self.assertEqual(again.resolve(**H).state, "approved")
 
+    def test_concurrent_consume_only_one_succeeds(self):
+        import threading
+        r = self.req()
+        self.store.decide(r.id, True)
+        results = []
+        def attempt():
+            results.append(self.store.consume(r.id))
+        threads = [threading.Thread(target=attempt) for _ in range(10)]
+        for t in threads: t.start()
+        for t in threads: t.join()
+        self.assertEqual(results.count(True), 1)
+        self.assertEqual(results.count(False), 9)
+
+    def test_modified_action_hash_or_policy_hash_denied(self):
+        r = self.req()
+        self.store.decide(r.id, True)
+        # Modified action arguments
+        self.assertEqual(self.store.resolve(action_hash="f" * 64, policy_hash=H["policy_hash"], agent_id=H["agent_id"]).state, "none")
+        # Modified policy version
+        self.assertEqual(self.store.resolve(action_hash=H["action_hash"], policy_hash="e" * 64, agent_id=H["agent_id"]).state, "none")
+
 
 if __name__ == "__main__":
     unittest.main()
