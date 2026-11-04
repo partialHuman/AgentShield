@@ -74,7 +74,8 @@ class ApprovalStoreTests(TmpDirTestCase):
         r = self.req()
         con = sqlite3.connect(self.store.db_path)
         con.execute("UPDATE approvals SET status='approved', decided_at=1, mac='forged' WHERE id=?", (r.id,))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
         self.assertEqual(self.store.resolve(**H).state, "invalid")
         self.assertFalse(self.store.consume(r.id))
 
@@ -85,7 +86,8 @@ class ApprovalStoreTests(TmpDirTestCase):
         con = sqlite3.connect(self.store.db_path)
         mac = con.execute("SELECT mac FROM approvals WHERE id=?", (r1.id,)).fetchone()[0]
         con.execute("UPDATE approvals SET status='approved', decided_at=(SELECT decided_at FROM approvals WHERE id=?), mac=? WHERE id=?", (r1.id, mac, r2.id))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
         self.assertFalse(self.store.consume(r2.id), "an approval MAC cannot be transplanted to another action")
 
     def test_queue_cap(self):
@@ -125,8 +127,10 @@ class ApprovalStoreTests(TmpDirTestCase):
         def attempt():
             results.append(self.store.consume(r.id))
         threads = [threading.Thread(target=attempt) for _ in range(10)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         self.assertEqual(results.count(True), 1)
         self.assertEqual(results.count(False), 9)
 

@@ -53,7 +53,8 @@ class PathLogicTests(unittest.TestCase):
         self.assertIsNotNone(windows_component_error("LPT9.log"))
 
     def test_probe_windows_detects_reparse_point_at_decision_time(self):
-        import tempfile, shutil
+        import shutil
+        import tempfile
         from agentshield.adapters.filesystem import probe_windows
         tmp = tempfile.mkdtemp()
         try:

@@ -168,14 +168,17 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     s = sub.add_parser("lint", help="validate a policy file")
-    s.add_argument("policy"); s.add_argument("--json", action="store_true")
+    s.add_argument("policy")
+    s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_lint)
 
     for name, explain in (("evaluate", False), ("explain", True)):
         s = sub.add_parser(name, help="dry-run an action against a policy (never executes tools)")
-        s.add_argument("policy"); s.add_argument("--tool", required=True)
+        s.add_argument("policy")
+        s.add_argument("--tool", required=True)
         s.add_argument("--args", required=True, help="JSON object, or @file.json")
-        s.add_argument("--agent-id", default="cli"); s.add_argument("--json", action="store_true")
+        s.add_argument("--agent-id", default="cli")
+        s.add_argument("--json", action="store_true")
         s.set_defaults(fn=(lambda a, e=explain: cmd_evaluate(a, e)))
 
     s = sub.add_parser("schema", help="print the JSON Schema for policy files")
@@ -185,9 +188,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--dir", default=DEFAULT_DIR, help=f"approval store directory (default {DEFAULT_DIR})")
     s.add_argument("--json", action="store_true")
     asub = s.add_subparsers(dest="action", required=True)
-    ls = asub.add_parser("list"); ls.add_argument("--status", choices=["pending", "approved", "rejected", "consumed"])
+    ls = asub.add_parser("list")
+    ls.add_argument("--status", choices=["pending", "approved", "rejected", "consumed"])
     for act in ("show", "approve", "reject"):
-        x = asub.add_parser(act); x.add_argument("id")
+        x = asub.add_parser(act)
+        x.add_argument("id")
         if act != "show":
             x.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
     s.set_defaults(fn=cmd_approvals)
@@ -195,7 +200,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("audit", help="audit log tools")
     asub = s.add_subparsers(dest="action", required=True)
     v = asub.add_parser("verify", help="verify the hash chain of an audit log")
-    v.add_argument("file"); v.add_argument("--head"); v.add_argument("--expect-hash")
+    v.add_argument("file")
+    v.add_argument("--head")
+    v.add_argument("--expect-hash")
     v.add_argument("--json", action="store_true")
     v.set_defaults(fn=cmd_audit)
     return p

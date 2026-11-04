@@ -9,11 +9,13 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 def _can_symlink() -> bool:
     if os.name == "posix":
         return True
-    import tempfile, shutil
+    import shutil
+    import tempfile
     d = tempfile.mkdtemp()
     try:
         s, l = os.path.join(d, "s"), os.path.join(d, "l")
-        with open(s, "w") as f: f.write("1")
+        with open(s, "w") as f:
+            f.write("1")
         os.symlink(s, l)
         return True
     except OSError:

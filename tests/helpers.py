@@ -14,7 +14,7 @@ import time
 import unittest
 from typing import Any
 
-from agentshield import AuditLog, Policy, Shield
+from agentshield import Policy, Shield
 from agentshield.approvals import ApprovalStore
 
 PUBLIC_IP = "93.184.216.34"
