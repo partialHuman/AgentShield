@@ -1,0 +1,521 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentshield.dev/schemas/policy-v1.json",
+  "title": "AgentShield policy (version 1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "tools"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "default_decision": {
+      "const": "DENY",
+      "description": "Default-deny is mandatory in v0.1."
+    },
+    "tools": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+      },
+      "properties": {
+        "calculator": {
+          "$ref": "#/$defs/calculator"
+        },
+        "filesystem.read": {
+          "$ref": "#/$defs/filesystem.read"
+        },
+        "filesystem.write": {
+          "$ref": "#/$defs/filesystem.write"
+        },
+        "http.fetch": {
+          "$ref": "#/$defs/http.fetch"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/custom_tool"
+      }
+    }
+  },
+  "$defs": {
+    "calculator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk",
+        "decision"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "REQUIRE_APPROVAL",
+            "DENY"
+          ]
+        },
+        "approval_ttl_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 300
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arg_constraints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "max_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "prefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "max_expression_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 200
+        }
+      }
+    },
+    "filesystem.read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk",
+        "decision",
+        "allowed_roots"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "REQUIRE_APPROVAL",
+            "DENY"
+          ]
+        },
+        "approval_ttl_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 300
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arg_constraints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "max_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "prefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "allowed_roots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Existing directories; relative paths resolve against the policy file's directory.",
+          "minItems": 1
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 268435456,
+          "default": 1048576
+        }
+      }
+    },
+    "filesystem.write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk",
+        "decision",
+        "allowed_roots"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "REQUIRE_APPROVAL",
+            "DENY"
+          ]
+        },
+        "approval_ttl_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 300
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arg_constraints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "max_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "prefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "allowed_roots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Existing directories; relative paths resolve against the policy file's directory.",
+          "minItems": 1
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 268435456,
+          "default": 1048576
+        }
+      }
+    },
+    "http.fetch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk",
+        "decision",
+        "allowed_hosts"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "REQUIRE_APPROVAL",
+            "DENY"
+          ]
+        },
+        "approval_ttl_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 300
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arg_constraints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "max_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "prefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "allowed_schemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "http",
+              "https"
+            ]
+          },
+          "minItems": 1,
+          "default": [
+            "https"
+          ]
+        },
+        "allowed_hosts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^*]+$"
+          },
+          "description": "Exact hostnames or IP literals; wildcards are not supported in v0.1.",
+          "minItems": 1
+        },
+        "allowed_ports": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "minItems": 1,
+          "default": [
+            443
+          ]
+        },
+        "block_private_addresses": {
+          "type": "boolean",
+          "default": true
+        },
+        "revalidate_redirects": {
+          "type": "boolean",
+          "default": true
+        },
+        "max_redirects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 134217728,
+          "default": 1048576
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 120,
+          "default": 10
+        }
+      }
+    },
+    "custom_tool": {
+      "type": "object",
+      "required": [
+        "risk",
+        "decision"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "REQUIRE_APPROVAL",
+            "DENY"
+          ]
+        },
+        "approval_ttl_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 300
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arg_constraints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "max_length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "prefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "description": "Custom tools may declare extra constraint keys; they are validated when the tool is wrapped."
+    }
+  }
+}

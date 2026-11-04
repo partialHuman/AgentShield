@@ -1,0 +1,12 @@
+# Hardened runtime for the demo: read-only root filesystem, no capabilities, no network.
+services:
+  demo:
+    build: .
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    user: "10001:10001"

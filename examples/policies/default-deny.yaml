@@ -1,0 +1,50 @@
+# Example AgentShield policy (v0.1). Anything not listed here is denied.
+# Relative paths are resolved against the directory containing this file.
+version: 1
+default_decision: DENY
+
+tools:
+  calculator:
+    enabled: true
+    risk: low
+    decision: ALLOW
+
+  filesystem.read:
+    enabled: true
+    risk: medium
+    allowed_roots:
+      - ./workspace
+    max_bytes: 1048576
+    decision: ALLOW
+
+  filesystem.write:
+    enabled: true
+    risk: high
+    allowed_roots:
+      - ./workspace/output
+    max_bytes: 1048576
+    decision: REQUIRE_APPROVAL
+    approval_ttl_seconds: 300
+
+  http.fetch:
+    enabled: true
+    risk: medium
+    allowed_schemes:
+      - https
+    allowed_hosts:
+      - docs.example.com
+    allowed_ports:
+      - 443
+    block_private_addresses: true
+    revalidate_redirects: true
+    max_redirects: 3
+    max_response_bytes: 2097152
+    timeout_seconds: 10
+    decision: ALLOW
+
+  # Shown only to illustrate an explicit deny. No shell adapter ships in v0.1;
+  # unregistered tools are denied by default anyway.
+  shell.exec:
+    enabled: false
+    risk: high
+    decision: DENY
