@@ -8,13 +8,12 @@ version = "0.1.0a1"
 description = "Runtime authorization firewall for AI-agent tool calls (alpha)."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [{ name = "AgentShield contributors" }]
 keywords = ["ai", "agents", "security", "policy", "authorization", "llm"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",

@@ -267,7 +267,10 @@ class ConcurrencyProperty(TmpDirTestCase):
                     pass
 
         ts = [threading.Thread(target=worker, args=(i,)) for i in range(6)]
-        [t.start() for t in ts]; [t.join() for t in ts]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
         sh.audit.close()
         self.assertEqual(counter.calls, sum(allowed))
         res = verify_chain(path)

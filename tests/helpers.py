@@ -14,7 +14,7 @@ import time
 import unittest
 from typing import Any
 
-from agentshield import AuditLog, Policy, Shield
+from agentshield import Policy, Shield
 from agentshield.approvals import ApprovalStore
 
 PUBLIC_IP = "93.184.216.34"
@@ -152,12 +152,17 @@ class LocalServer:
 
 def make_cert(directory: str, hostname: str) -> tuple[str, str] | None:
     """Self-signed cert via the openssl CLI; None if openssl is unavailable."""
-    if shutil.which("openssl") is None:
+    openssl_cmd = shutil.which("openssl")
+    if openssl_cmd is None and os.name == "nt":
+        candidate = r"C:\Program Files\Git\usr\bin\openssl.exe"
+        if os.path.exists(candidate):
+            openssl_cmd = candidate
+    if openssl_cmd is None:
         return None
     key, crt = os.path.join(directory, "k.pem"), os.path.join(directory, "c.pem")
     try:
         subprocess.run(
-            ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", crt,
+            [openssl_cmd, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", crt,
              "-days", "2", "-subj", f"/CN={hostname}", "-addext", f"subjectAltName=DNS:{hostname}"],
             check=True, capture_output=True,
         )

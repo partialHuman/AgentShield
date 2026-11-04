@@ -112,7 +112,8 @@ class AuditTests(TmpDirTestCase):
         a, b = AuditLog(path), AuditLog(path)
         for i in range(10):
             (a if i % 2 else b).record("decision", i=i)
-        a.close(); b.close()
+        a.close()
+        b.close()
         res = verify_chain(path)
         self.assertTrue(res.ok, res.error)
         self.assertEqual(res.events, 10)
@@ -123,7 +124,10 @@ class AuditTests(TmpDirTestCase):
         path = os.path.join(self.tmp, "t.jsonl")
         log = AuditLog(path)
         ts = [threading.Thread(target=lambda: [log.record("decision", n=n) for n in range(25)]) for _ in range(6)]
-        [t.start() for t in ts]; [t.join() for t in ts]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
         log.close()
         res = verify_chain(path)
         self.assertTrue(res.ok, res.error)
@@ -154,6 +158,16 @@ class AuditTests(TmpDirTestCase):
         log = AuditLog()
         log.record("decision", tool="x")
         self.assertEqual(len(log.events), 1)
+
+    def test_tampering_event_seq_detected(self):
+        path = self.make(3)
+        ls = self.lines(path)
+        ev = json.loads(ls[1])
+        ev["seq"] = 99
+        ls[1] = (json.dumps(ev, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        self.write(path, ls)
+        res = verify_chain(path)
+        self.assertFalse(res.ok)
 
 
 if __name__ == "__main__":

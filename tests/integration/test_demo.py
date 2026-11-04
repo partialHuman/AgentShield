@@ -6,7 +6,25 @@ import unittest
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
-@unittest.skipUnless(os.name == "posix", "demo builds symlinks")
+def _can_symlink() -> bool:
+    if os.name == "posix":
+        return True
+    import shutil
+    import tempfile
+    d = tempfile.mkdtemp()
+    try:
+        s, l = os.path.join(d, "s"), os.path.join(d, "l")
+        with open(s, "w") as f:
+            f.write("1")
+        os.symlink(s, l)
+        return True
+    except OSError:
+        return False
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+@unittest.skipUnless(_can_symlink(), "environment does not support symlinks")
 class DemoTests(unittest.TestCase):
     def test_scripted_attacker_demo_passes_offline(self):
         env = dict(os.environ, PYTHONPATH=os.pathsep.join(sys.path), HTTPS_PROXY="http://127.0.0.1:9")

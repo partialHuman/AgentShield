@@ -23,7 +23,7 @@ from typing import Any
 from urllib.parse import urljoin
 
 from ..constraints import HTTP_CONSTRAINTS
-from ..models import ExecutionError, Reason
+from ..models import ExecutionError
 from ..netguard import HostError, ParsedURL, Resolver, check_destination, parse_url, system_resolver
 from ..normalize import ArgSpec, truncate
 from ..policy import ToolPolicy

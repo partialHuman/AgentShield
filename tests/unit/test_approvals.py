@@ -74,7 +74,8 @@ class ApprovalStoreTests(TmpDirTestCase):
         r = self.req()
         con = sqlite3.connect(self.store.db_path)
         con.execute("UPDATE approvals SET status='approved', decided_at=1, mac='forged' WHERE id=?", (r.id,))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
         self.assertEqual(self.store.resolve(**H).state, "invalid")
         self.assertFalse(self.store.consume(r.id))
 
@@ -85,7 +86,8 @@ class ApprovalStoreTests(TmpDirTestCase):
         con = sqlite3.connect(self.store.db_path)
         mac = con.execute("SELECT mac FROM approvals WHERE id=?", (r1.id,)).fetchone()[0]
         con.execute("UPDATE approvals SET status='approved', decided_at=(SELECT decided_at FROM approvals WHERE id=?), mac=? WHERE id=?", (r1.id, mac, r2.id))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
         self.assertFalse(self.store.consume(r2.id), "an approval MAC cannot be transplanted to another action")
 
     def test_queue_cap(self):
@@ -116,6 +118,42 @@ class ApprovalStoreTests(TmpDirTestCase):
         self.store.decide(r.id, True)
         again = ApprovalStore(os.path.join(self.tmp, "ap"), clock=self.clock)
         self.assertEqual(again.resolve(**H).state, "approved")
+
+    def test_concurrent_consume_only_one_succeeds(self):
+        import threading
+        r = self.req()
+        self.store.decide(r.id, True)
+        results = []
+        def attempt():
+            results.append(self.store.consume(r.id))
+        threads = [threading.Thread(target=attempt) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(results.count(True), 1)
+        self.assertEqual(results.count(False), 9)
+
+    def test_modified_action_hash_or_policy_hash_denied(self):
+        r = self.req()
+        self.store.decide(r.id, True)
+        # Modified action arguments
+        self.assertEqual(self.store.resolve(action_hash="f" * 64, policy_hash=H["policy_hash"], agent_id=H["agent_id"]).state, "none")
+        # Modified policy version
+        self.assertEqual(self.store.resolve(action_hash=H["action_hash"], policy_hash="e" * 64, agent_id=H["agent_id"]).state, "none")
+
+    def test_list_filtering_and_tuple_args(self):
+        self.assertEqual(self.store.list(), [])
+        self.assertEqual(self.store.list("pending"), [])
+        r1 = self.req()
+        self.req(action_hash="1" * 64, policy_hash="2" * 64, agent_id="agent-2")
+        all_recs = self.store.list()
+        self.assertEqual(len(all_recs), 2)
+        self.assertEqual(len(self.store.list("pending")), 2)
+        self.assertEqual(self.store.list("approved"), [])
+        self.store.decide(r1.id, True)
+        self.assertEqual(len(self.store.list("approved")), 1)
+        self.assertEqual(len(self.store.list("pending")), 1)
 
 
 if __name__ == "__main__":

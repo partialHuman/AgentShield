@@ -220,6 +220,20 @@ def _write_posix(root: str, parts: Sequence[str], data: bytes, overwrite: bool) 
 
 
 # ------------------------------------------------------------------ Windows best effort
+def probe_windows(root: str, parts: Sequence[str]) -> str | None:
+    """Decision-time check (advisory) on Windows: return PATH_SYMLINK if the path contains a reparse point or symlink."""
+    cur = root
+    for comp in parts:
+        cur = os.path.join(cur, comp)
+        try:
+            st = os.lstat(cur)
+        except OSError:
+            continue
+        if stat.S_ISLNK(st.st_mode) or getattr(st, "st_file_attributes", 0) & 0x400:
+            return Reason.PATH_SYMLINK
+    return None
+
+
 def _win_walk(root: str, parts: Sequence[str]) -> str:  # pragma: no cover - exercised on Windows CI only
     cur = root
     for comp in parts:
@@ -249,6 +263,10 @@ def _make_checker(kind: str) -> Callable[[dict[str, Any], ToolPolicy], CheckOutc
             if probe_posix(root, parts):
                 codes.append(Reason.PATH_SYMLINK)
                 trace.append("symlink found in existing path")
+        else:
+            if probe_windows(root, parts):
+                codes.append(Reason.PATH_SYMLINK)
+                trace.append("reparse point found in existing path")
         if kind == "write":
             limit = int(tp.constraints["max_bytes"])
             if len(args["content"].encode("utf-8")) > limit:
@@ -272,6 +290,18 @@ def _read_factory(tp: ToolPolicy) -> Callable[..., Any]:
             raw = _read_posix(root, parts, max_bytes)
         else:  # pragma: no cover
             full = _win_walk(root, parts)
+            try:
+                st = os.stat(full)
+                if not stat.S_ISREG(st.st_mode):
+                    raise ExecutionError("NOT_REGULAR_FILE")
+                if st.st_nlink > 1:
+                    raise ExecutionError("HARDLINK_NOT_ALLOWED")
+            except FileNotFoundError:
+                raise ExecutionError("NOT_FOUND") from None
+            except OSError as exc:
+                if exc.errno in (errno.EACCES, errno.EPERM):
+                    raise ExecutionError("PERMISSION_DENIED") from None
+                raise ExecutionError("IO_ERROR", errno.errorcode.get(exc.errno or 0, "?")) from None
             with open(full, "rb") as fh:
                 raw = fh.read(max_bytes + 1)
             if len(raw) > max_bytes:
@@ -301,8 +331,23 @@ def _write_factory(tp: ToolPolicy) -> Callable[..., Any]:
             n = _write_posix(root, parts, data, overwrite)
         else:  # pragma: no cover
             full = _win_walk(root, parts)
-            with open(full, "wb" if overwrite else "xb") as fh:
-                n = fh.write(data)
+            try:
+                st = os.stat(full)
+                if not stat.S_ISREG(st.st_mode):
+                    raise ExecutionError("NOT_REGULAR_FILE")
+                if st.st_nlink > 1:
+                    raise ExecutionError("HARDLINK_NOT_ALLOWED")
+            except FileNotFoundError:
+                pass
+            try:
+                with open(full, "wb" if overwrite else "xb") as fh:
+                    n = fh.write(data)
+            except FileExistsError:
+                raise ExecutionError("FILE_EXISTS") from None
+            except FileNotFoundError:
+                raise ExecutionError("NOT_FOUND") from None
+            except PermissionError:
+                raise ExecutionError("NOT_REGULAR_FILE") from None
         return {"path": "/".join(parts), "bytes_written": n}
 
     return write

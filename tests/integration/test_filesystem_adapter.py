@@ -17,7 +17,6 @@ tools:
 """
 
 
-@unittest.skipUnless(POSIX, "POSIX no-follow semantics")
 class FileAdapterTests(TmpDirTestCase):
     def setUp(self):
         super().setUp()
@@ -42,7 +41,10 @@ class FileAdapterTests(TmpDirTestCase):
     # ---- happy path
     def test_read_relative_and_absolute(self):
         self.assertEqual(self.read(path="hello.txt"), {"path": "hello.txt", "size": 5, "content": "hello"})
-        self.assertEqual(self.read(path=os.path.join(self.ws, "hello.txt"))["content"], "hello")
+        if POSIX:
+            self.assertEqual(self.read(path=os.path.join(self.ws, "hello.txt"))["content"], "hello")
+        else:
+            self.assertEqual(self.denied(self.read, path=os.path.join(self.ws, "hello.txt")), [Reason.PATH_OUTSIDE_ROOT])
         self.assertEqual(self.read(path="./hello.txt")["content"], "hello")
         self.assertEqual(self.denied(self.read, path="//hello.txt"), [Reason.PATH_OUTSIDE_ROOT])  # absolute, not in root
 
@@ -60,7 +62,8 @@ class FileAdapterTests(TmpDirTestCase):
         self.write(path="a.txt", content="two", overwrite=True)
         with open(os.path.join(self.ws, "output", "a.txt")) as fh:
             self.assertEqual(fh.read(), "two")
-        self.assertEqual(stat.S_IMODE(os.stat(os.path.join(self.ws, "output", "a.txt")).st_mode), 0o600)
+        if POSIX:
+            self.assertEqual(stat.S_IMODE(os.stat(os.path.join(self.ws, "output", "a.txt")).st_mode), 0o600)
 
     def test_write_preserves_content_exactly(self):
         text = "line1\r\nline2\n\ttab caf\u00e9\u0301"
@@ -112,6 +115,7 @@ class FileAdapterTests(TmpDirTestCase):
         self.assertEqual(sh.wrap(file_read_tool())(path="f.txt")["content"], "ok")
 
     # ---- TOCTOU: the symlink appears AFTER the decision, before use ----
+    @unittest.skipUnless(POSIX, "POSIX O_NOFOLLOW TOCTOU atomicity")
     def test_toctou_symlink_swapped_in_after_decision_is_still_blocked_at_use_time(self):
         read_exec = _read_factory(self.sh.policy.tool_policy("filesystem.read"))
         write_exec = _write_factory(self.sh.policy.tool_policy("filesystem.write"))
@@ -135,6 +139,7 @@ class FileAdapterTests(TmpDirTestCase):
         self.assertEqual(cm2.exception.code, Reason.PATH_SYMLINK)
         self.assertFalse(os.path.exists(os.path.join(self.outside, "pwned.txt")))
 
+    @unittest.skipUnless(POSIX, "POSIX O_NOFOLLOW TOCTOU atomicity")
     def test_toctou_race_thread_hammering_symlink_swaps(self):
         """Swap a directory <-> symlink in a tight loop while reading; the secret must never be returned."""
         from agentshield import ExecutionError
@@ -193,6 +198,7 @@ class FileAdapterTests(TmpDirTestCase):
         with open(os.path.join(self.outside, "secret.txt")) as fh:
             self.assertEqual(fh.read(), "TOP-SECRET")
 
+    @unittest.skipUnless(POSIX, "FIFOs are POSIX-only")
     def test_fifo_is_refused_without_blocking(self):
         os.mkfifo(os.path.join(self.ws, "pipe"))
         self.assertEqual(self.exec_error(self.read, path="pipe"), "NOT_REGULAR_FILE")

@@ -48,6 +48,33 @@ class CalculatorTests(unittest.TestCase):
         self.rejects("1%0", "DIVISION_BY_ZERO")
         self.rejects("+".join(["1"] * 500), "INVALID_EXPRESSION")
 
+    def test_numeric_boundary_and_floats(self):
+        self.assertEqual(calculate("10 ** 60"), 10**60)
+        self.rejects("10 ** 60 + 1", "NUMERIC_RANGE")
+        self.assertEqual(calculate("0"), 0)
+        self.assertEqual(calculate("0.0"), 0.0)
+        self.assertEqual(calculate("1e10"), 1e10)
+        self.assertEqual(calculate("1.25 + 2.75"), 4.0)
+        self.assertEqual(calculate("+42"), 42)
+        self.assertEqual(calculate("-42"), -42)
+        self.assertEqual(calculate("-(-42)"), 42)
+        self.assertEqual(calculate("+-+-42"), 42)
+
+    def test_direct_ast_eval_invalid_types_rejected(self):
+        import ast
+        from agentshield.adapters.calculator import _eval
+        for val in ["str", b"bytes", 1j, None, ..., True, False]:
+            with self.assertRaises(ExecutionError) as cm:
+                _eval(ast.Constant(value=val))
+            self.assertEqual(cm.exception.code, "INVALID_EXPRESSION")
+
+    def test_direct_ast_eval_unsupported_unary_op_rejected(self):
+        import ast
+        from agentshield.adapters.calculator import _eval
+        with self.assertRaises(ExecutionError) as cm:
+            _eval(ast.UnaryOp(op=ast.Invert(), operand=ast.Constant(value=1)))
+        self.assertEqual(cm.exception.code, "INVALID_EXPRESSION")
+
 
 if __name__ == "__main__":
     unittest.main()

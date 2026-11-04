@@ -9,7 +9,7 @@ from agentshield import (
     ActionDenied, ApprovalPending, ArgSpec, AuditLog, C, CheckOutcome, Decision, ExecutionError, PolicyError,
     Reason, Shield, Tool, ToolExecutionError, verify_chain,
 )
-from tests.helpers import BASE_POLICY, Counter, FakeClock, TmpDirTestCase
+from tests.helpers import Counter, FakeClock, TmpDirTestCase
 
 CUSTOM = """
 version: 1
@@ -186,7 +186,8 @@ class AllowPathTests(TmpDirTestCase):
         sh = self.shield(CUSTOM)
         ctr = Counter()
         fn = sh.wrap(tool("demo.limited", ctr))
-        fn(); fn()
+        fn()
+        fn()
         with self.assertRaises(ActionDenied) as cm:
             fn()
         self.assertEqual(cm.exception.result.reason_codes, [Reason.CALL_LIMIT_EXCEEDED])
@@ -206,7 +207,10 @@ class AllowPathTests(TmpDirTestCase):
                     denied.append(1)
 
         ts = [threading.Thread(target=worker) for _ in range(8)]
-        [t.start() for t in ts]; [t.join() for t in ts]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
         self.assertEqual(ctr.count, 7)
         self.assertEqual(len(denied), 80 - 7)
 
@@ -340,7 +344,10 @@ class ApprovalFlowTests(TmpDirTestCase):
                 results.append("blocked")
 
         ts = [threading.Thread(target=worker) for _ in range(10)]
-        [t.start() for t in ts]; [t.join() for t in ts]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
         self.assertEqual(results.count("ran"), 1)
         self.assertEqual(self.ctr.count, 1)
 

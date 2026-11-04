@@ -52,6 +52,24 @@ class PathLogicTests(unittest.TestCase):
         self.assertIsNone(windows_component_error("conf"))  # not reserved
         self.assertIsNotNone(windows_component_error("LPT9.log"))
 
+    def test_probe_windows_detects_reparse_point_at_decision_time(self):
+        import shutil
+        import tempfile
+        from agentshield.adapters.filesystem import probe_windows
+        tmp = tempfile.mkdtemp()
+        try:
+            f = os.path.join(tmp, "real.txt")
+            with open(f, "w") as fh:
+                fh.write("real")
+            self.assertIsNone(probe_windows(tmp, ["real.txt"]))
+            try:
+                os.symlink(f, os.path.join(tmp, "sym.txt"))
+                self.assertEqual(probe_windows(tmp, ["sym.txt"]), Reason.PATH_SYMLINK)
+            except OSError:
+                pass  # symlink creation restricted
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main()
