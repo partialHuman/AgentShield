@@ -122,5 +122,14 @@ class DestinationTests(unittest.TestCase):
         self.assertEqual(check_destination(parse_url("https://8.8.8.8/"), resolver=no_dns, **kw)[0], [Reason.HOST_NOT_ALLOWED])
 
 
+class RedactUrlTests(unittest.TestCase):
+    def test_redact_url_strips_credentials_and_query(self):
+        from agentshield.adapters.http_fetch import redact_url
+        self.assertEqual(redact_url("https://example.com/path?token=secret#frag"), "https://example.com/path?[redacted]")
+        self.assertEqual(redact_url("https://user:pass@example.com/path?token=secret#frag"), "https://[redacted]@example.com/path")
+        self.assertNotIn("secret", redact_url("https://user:pass@example.com/path?token=secret#frag"))
+        self.assertEqual(redact_url("http://example.com/clean"), "http://example.com/clean")
+
+
 if __name__ == "__main__":
     unittest.main()
