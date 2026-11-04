@@ -21,8 +21,22 @@ argument as untrusted input.
 
 ## Install
 
+Python 3.11+ is required; the only runtime dependency is PyYAML.
+
+### Install the published alpha release
+
+Install the pre-built alpha wheel directly from GitHub Releases:
+
 ```bash
-pip install -e .          # Python 3.11+; the only runtime dependency is PyYAML
+pip install https://github.com/partialHuman/AgentShield/releases/download/v0.1.0a1/agentshield-0.1.0a1-py3-none-any.whl
+```
+
+### Install from source for development
+
+```bash
+git clone https://github.com/partialHuman/AgentShield.git
+cd AgentShield
+pip install -e .
 ```
 
 ## Quickstart
